@@ -53,7 +53,9 @@
 (defvar neo-buffer--start-node)
 (defvar git-gutter:diffinfos)
 (defvar git-gutter+-diffinfos)
-(defvar org-clock-current-task)
+(defvar org-clock-current-task
+  'org-clock-get-clock-string
+  "The function called by the `all-the-icons-org-clock-current-task' segment to determine what to show.")
 
 (defmacro define-spaceline-all-the-icons--icon-set-getter (name)
   "Macro to create a getter function for icon set NAME."
@@ -427,8 +429,8 @@ doesn't inherit all properties of a face."
   "Ubiquitous function to return the current window number."
   (let ((window-num
          (cond
-           ((bound-and-true-p winum-mode) (winum-get-number))
-           ((bound-and-true-p window-numbering-mode) (window-numbering-get-number)))))
+          ((bound-and-true-p winum-mode) (winum-get-number))
+          ((bound-and-true-p window-numbering-mode) (window-numbering-get-number)))))
     (when (numberp window-num) window-num)))
 
 (defun spaceline-all-the-icons--window-number-icon (window-num &optional icon-set)
@@ -467,8 +469,8 @@ ICON-SET defaults to `spaceline-all-the-icons-icon-set-window-numbering'."
                           num spaceline-all-the-icons-icon-set-eyebrowse-slot))
          (eyebrowse-new
           (propertize (all-the-icons-octicon "eye")
-                               'display '(raise 0.1)
-                               'face `( :height ,(spaceline-all-the-icons--height 1.2) :family ,(all-the-icons-octicon-family) :inherit)))
+                      'display '(raise 0.1)
+                      'face `( :height ,(spaceline-all-the-icons--height 1.2) :family ,(all-the-icons-octicon-family) :inherit)))
          (eyebrowse-tag-p (and (not (string= "" tag)) spaceline-all-the-icons-eyebrowse-display-name))
          (eyebrowse-tag
           (when eyebrowse-tag-p
@@ -525,8 +527,8 @@ ICON-SET defaults to `spaceline-all-the-icons-icon-set-window-numbering'."
                   'help-echo (format "Major-mode: `%s'" major-mode)
                   'display '(raise 0)
                   'face `(:height ,(spaceline-all-the-icons--height 1.1)
-                          :family ,(all-the-icons-icon-family-for-mode major-mode)
-                          :inherit)))))
+                                  :family ,(all-the-icons-icon-family-for-mode major-mode)
+                                  :inherit)))))
 
 (spaceline-define-segment all-the-icons-buffer-id
   "An `all-the-icons' segment to display current buffer id"
@@ -547,7 +549,7 @@ ICON-SET defaults to `spaceline-all-the-icons-icon-set-window-numbering'."
          (buffer-id (if (and (buffer-file-name)
                              (or show-path? show-projectile?))
                         (file-name-nondirectory (buffer-file-name))
-                        (format-mode-line "%b")))
+                      (format-mode-line "%b")))
 
          (mouse-f (if have-projectile? 'projectile-find-file 'find-file)))
 
@@ -700,8 +702,8 @@ It is only enabled when you're not in a project or if the projectile segment is 
   (cond ((string-match "Git[:-]" vc-mode)
          (propertize (spaceline-all-the-icons-icon-set-vc-icon-git)
                      'face `(:height ,(spaceline-all-the-icons--height 1.1)
-                             :family ,(all-the-icons-icon-family (spaceline-all-the-icons-icon-set-vc-icon-git))
-                             :inherit)
+                                     :family ,(all-the-icons-icon-family (spaceline-all-the-icons-icon-set-vc-icon-git))
+                                     :inherit)
                      'display '(raise 0.1)))
         ((string-match "SVN-" vc-mode)
          (propertize (all-the-icons-material "cloud_download" :v-adjust -0.2)
@@ -747,7 +749,7 @@ When FAMILY is provided, put `:family' property into face."
   (let* ((family (all-the-icons-icon-family icon))
          (height (if family 1.0 1.2))
          (icon-face `(:foreground ,(spaceline-all-the-icons--face-foreground face)
-                      :height ,(spaceline-all-the-icons--height height))))
+                                  :height ,(spaceline-all-the-icons--height height))))
 
     (when family (setq icon-face (append `(:family ,family) icon-face)))
     (concat
@@ -755,7 +757,7 @@ When FAMILY is provided, put `:family' property into face."
      (propertize " " 'face `(:height ,(spaceline-all-the-icons--height 0.2)))
      (propertize (format "%s" text)
                  'face `(:foreground ,(spaceline-all-the-icons--face-foreground face)
-                         :height ,(spaceline-all-the-icons--height))))))
+                                     :height ,(spaceline-all-the-icons--height))))))
 
 (defmacro spaceline-all-the-icons--git-stats-reducer (name el-f sl-f hunk-f type-f)
   "Macro to define reducer to calculate Added, Deleted & Modified lines in git.
@@ -845,21 +847,21 @@ When FAMILY is provided, put `:family' property into face."
          (family (all-the-icons-icon-family icon))
          (raise (if (> (length (spaceline-all-the-icons-icon-set-flycheck-slim)) 3) -0.2 0.0))
          (icon-face `(:foreground ,(spaceline-all-the-icons--face-foreground face)
-                      :height ,(spaceline-all-the-icons--height height))))
+                                  :height ,(spaceline-all-the-icons--height height))))
     (when family (setq icon-face (append `(:family ,family) icon-face)))
     (when text
-     (concat
-      (propertize icon 'face icon-face 'display `(raise ,raise))
-      (propertize (format "%s" text)
-                  'face `(:foreground ,(spaceline-all-the-icons--face-foreground face)
-                          :height ,(spaceline-all-the-icons--height)))))))
+      (concat
+       (propertize icon 'face icon-face 'display `(raise ,raise))
+       (propertize (format "%s" text)
+                   'face `(:foreground ,(spaceline-all-the-icons--face-foreground face)
+                                       :height ,(spaceline-all-the-icons--height)))))))
 
 (defun spaceline-all-the-icons--flycheck-status-slim ()
   "Render the mode line for Flycheck Status slim mode."
   (let-alist (flycheck-count-errors flycheck-current-errors)
     (let* ((get-text (lambda (text) (cond ((eq 'running flycheck-last-status-change) "?")
-                                     ((zerop (or text 0)) nil)
-                                     (t text))))
+                                          ((zerop (or text 0)) nil)
+                                          (t text))))
 
            (error-text (funcall get-text .error))
            (warn-text  (funcall get-text .warning))
@@ -903,14 +905,14 @@ When FAMILY is provided, put `:family' property into face."
                 ((string-match "✖ Disabled" text) `(:height ,(spaceline-all-the-icons--height 0.9) :foreground ,(spaceline-all-the-icons--face-foreground 'font-lock-comment-face)))
                 (t `(:height ,(spaceline-all-the-icons--height 0.9) :inherit)))))
 
-     (propertize text 'face face 'display '(raise 0.1))))
+    (propertize text 'face face 'display '(raise 0.1))))
 
 (spaceline-define-segment all-the-icons-flycheck-status
   "An `all-the-icons' segment to show the `flycheck-last-status-change'."
   (propertize (if (or spaceline-all-the-icons-flycheck-alternate
                       spaceline-all-the-icons-slim-render)
                   (spaceline-all-the-icons--flycheck-status-slim)
-                  (spaceline-all-the-icons--flycheck-status))
+                (spaceline-all-the-icons--flycheck-status))
               'help-echo "Show Flycheck Errors"
               'mouse-face (spaceline-all-the-icons--highlight)
               'local-map (make-mode-line-mouse-map 'mouse-1 'flycheck-list-errors))
@@ -927,9 +929,9 @@ When FAMILY is provided, put `:family' property into face."
                   'help-echo "Show Flycheck Errors"
                   'mouse-face (spaceline-all-the-icons--highlight)
                   'local-map (make-mode-line-mouse-map 'mouse-1 'flycheck-list-errors))))
-    :when (and active
-               (not spaceline-all-the-icons-slim-render)
-               (bound-and-true-p flycheck-last-status-change)))
+  :when (and active
+             (not spaceline-all-the-icons-slim-render)
+             (bound-and-true-p flycheck-last-status-change)))
 
 (defvar spaceline-all-the-icons--package-updates nil)
 (defun spaceline-all-the-icons--count-package-updates (&rest args)
@@ -977,21 +979,27 @@ available updates then restores the current buffer."
 ;;; First Right divider segments
 ;; Org task
 (spaceline-define-segment all-the-icons-org-clock-current-task
-  "An `all-the-icons' segment to display the current org-clock task."
-  (let ((face `(:height ,(spaceline-all-the-icons--height 0.9) :inherit)))
-    (propertize
-     (concat
-      (propertize (all-the-icons-faicon "check-circle" :v-adjust 0.1)
-                  'face `(:height ,(spaceline-all-the-icons--height 1.1) :family ,(all-the-icons-faicon-family) :inherit))
-      " "
-      (propertize (truncate-string-to-width org-clock-current-task 20 nil nil "…")
-                  'face face
-                  'display '(raise 0.1)))
-     'help-echo "Go to task"
-     'mouse-face (spaceline-all-the-icons--highlight)
-     'local-map (make-mode-line-mouse-map 'mouse-1 #'org-clock-goto)))
-  :when (and active
-             (bound-and-true-p org-clock-current-task)))
+  "An `all-the-icons' segment to display the current org-clock task, including
+  clocked time and effort (if available).
+
+This segment overrides the modeline functionality of `org-mode-line-string'."
+  (when (and (fboundp 'org-clocking-p)
+             (org-clocking-p))
+    ;; Throw in here all-the-icons stuff
+    (let ((face `(:height ,(spaceline-all-the-icons--height 0.9) :inherit)))
+      (propertize
+       (concat
+        (propertize (all-the-icons-faicon "check-circle" :v-adjust 0.1)
+                    'face `(:height ,(spaceline-all-the-icons--height 1.1) :family ,(all-the-icons-faicon-family) :inherit))
+        " "
+        (propertize (truncate-string-to-width (funcall spaceline-org-clock-format-function) 40 nil nil "…")
+                    'face face
+                    'display '(raise 0.1)))
+       'help-echo "Go to task"
+       'mouse-face (spaceline-all-the-icons--highlight)
+       'local-map (make-mode-line-mouse-map 'mouse-1 #'org-clock-goto)))
+    )
+  :global-override org-mode-line-string)
 
 (spaceline-define-segment all-the-icons-hud
   "An `all-the-icons' segment to show the position through buffer HUD indicator."
@@ -1089,8 +1097,8 @@ available updates then restores the current buffer."
                      'display '(raise 0.1))))
 
       (propertize " " 'display '(space . (:width 1))))
-      'help-echo (format-time-string "%c")
-      'mouse-face (spaceline-all-the-icons--highlight)))
+     'help-echo (format-time-string "%c")
+     'mouse-face (spaceline-all-the-icons--highlight)))
   :tight t :enabled t
   :when (or spaceline-all-the-icons-clock-always-visible
             (frame-parameter nil 'fullscreen)))
@@ -1147,8 +1155,8 @@ Displays HERE and TOTAL to indicate how many search results have been found."
          (icon-face `(:height ,(spaceline-all-the-icons--height 1.1) :family ,(all-the-icons-material-family) :inherit ,anzu-face)))
 
     (concat " "
-     (propertize (all-the-icons-material icon) 'face icon-face)
-     (propertize status 'face text-face) " ")))
+            (propertize (all-the-icons-material icon) 'face icon-face)
+            (propertize status 'face text-face) " ")))
 
 ;; Weather Segments
 (defmacro define-spaceline-all-the-icons--sun-segment (type)
@@ -1190,10 +1198,10 @@ INFO should be an object similar to `yahoo-weather-info'."
          (clamp (lambda (i) (max 0 (min 255 i))))
          (r (funcall clamp (if (< normal 67)
                                255
-                               (* 329.698727446 (expt (- normal 60) -0.1332047592)))))
+                             (* 329.698727446 (expt (- normal 60) -0.1332047592)))))
          (g (funcall clamp (if (< normal 67)
                                (- (* 99.4708025861 (log normal)) 161.1195681661)
-                               (* 288.1221695283 (expt (- normal 60) -0.0755148492)))))
+                             (* 288.1221695283 (expt (- normal 60) -0.0755148492)))))
          (b (funcall clamp (cond
                             ((> normal 65) 255)
                             ((< normal 20) 0)
@@ -1207,17 +1215,17 @@ INFO should be an object similar to `yahoo-weather-info'."
          (icon (if yahoo-weather-use-F "°F" "°C"))
 
          (icon-face `(:height ,(spaceline-all-the-icons--height 0.9)
-                      :family ,(all-the-icons-wicon-family)
-                      :foreground ,(spaceline-all-the-icons--temperature-color yahoo-weather-info)
-                      :background ,(spaceline-all-the-icons--face-background 'powerline-active2)))
+                              :family ,(all-the-icons-wicon-family)
+                              :foreground ,(spaceline-all-the-icons--temperature-color yahoo-weather-info)
+                              :background ,(spaceline-all-the-icons--face-background 'powerline-active2)))
          (text-face `(:height ,(spaceline-all-the-icons--height 0.9) :inherit)))
     (propertize
      (concat
       (propertize (all-the-icons-wicon "thermometer-exterior") 'face icon-face)
       (unless spaceline-all-the-icons-slim-render (concat
-                            (propertize " " 'face `(:height ,(spaceline-all-the-icons--height 0.4) :inherit))
-                            (propertize temperature 'face text-face)
-                            (propertize icon 'face text-face))))
+                                                   (propertize " " 'face `(:height ,(spaceline-all-the-icons--height 0.4) :inherit))
+                                                   (propertize temperature 'face text-face)
+                                                   (propertize icon 'face text-face))))
      'help-echo (format "Temperature is currently %s%s" temperature icon)
      'mouse-face (spaceline-all-the-icons--highlight)
      'display '(raise 0.1)))
@@ -1267,13 +1275,13 @@ INFO should be an object similar to `yahoo-weather-info'."
                                          "\nmouse-3: Toggle minor mode")
                       'local-map (let ((map (make-sparse-keymap)))
                                    (define-key map [mode-line down-mouse-1]
-                                     (powerline-mouse 'minor 'menu lighter))
+                                               (powerline-mouse 'minor 'menu lighter))
                                    (define-key map [mode-line mouse-2]
-                                     (powerline-mouse 'minor 'help lighter))
+                                               (powerline-mouse 'minor 'help lighter))
                                    (define-key map [mode-line down-mouse-3]
-                                     (powerline-mouse 'minor 'menu lighter))
+                                               (powerline-mouse 'minor 'menu lighter))
                                    (define-key map [header-line down-mouse-3]
-                                     (powerline-mouse 'minor 'menu lighter))
+                                               (powerline-mouse 'minor 'menu lighter))
                                    map))))
        (append acc (when display? `(,lighter)))))
    minor-mode-alist
@@ -1320,9 +1328,9 @@ BODY is the form to evaluate to get the text to display."
      ,(format "An `all-the-icons' segment to depict the number of %s packages in `paradox'." type)
      (let* ((text ,@body)
             (text-face `(:foreground ,(spaceline-all-the-icons--face-foreground 'font-lock-keyword-face)
-                         :background ,(spaceline-all-the-icons--face-background 'powerline-active1)))
+                                     :background ,(spaceline-all-the-icons--face-background 'powerline-active1)))
             (icon-face `(:family ,(all-the-icons-icon-family ,icon)
-                         :background ,(spaceline-all-the-icons--face-background 'powerline-active1)))
+                                 :background ,(spaceline-all-the-icons--face-background 'powerline-active1)))
             (num-face (cond
                        ((eq ',type 'new) 'success)
                        ((eq ',type 'upgrade) 'warning)
@@ -1341,26 +1349,26 @@ BODY is the form to evaluate to get the text to display."
      :when (derived-mode-p 'paradox-menu-mode)))
 
 (define-spaceline-all-the-icons--paradox-segment upgrade
-  (all-the-icons-faicon "arrow-circle-up" :v-adjust 0.1)
-  ("Mark packages for upgrading" . 'package-menu-mark-upgrades)
-  paradox--upgradeable-packages-number)
+                                                 (all-the-icons-faicon "arrow-circle-up" :v-adjust 0.1)
+                                                 ("Mark packages for upgrading" . 'package-menu-mark-upgrades)
+                                                 paradox--upgradeable-packages-number)
 
 (define-spaceline-all-the-icons--paradox-segment new
-  (all-the-icons-material "new_releases" :v-adjust -0.1) nil
-  (cdr (assoc-string "new" paradox--package-count)))
+                                                 (all-the-icons-material "new_releases" :v-adjust -0.1) nil
+                                                 (cdr (assoc-string "new" paradox--package-count)))
 
 (define-spaceline-all-the-icons--paradox-segment
-  installed
-  (all-the-icons-octicon "package" :v-adjust 0.1)
-  ("Filter to installed packages" . (lambda () (interactive) (package-menu-filter "status:installed")))
-  (+ (cdr (assoc-string "installed" paradox--package-count))
-     (cdr (assoc-string "dependency" paradox--package-count))
-     (cdr (assoc-string "unsigned" paradox--package-count))));
+ installed
+ (all-the-icons-octicon "package" :v-adjust 0.1)
+ ("Filter to installed packages" . (lambda () (interactive) (package-menu-filter "status:installed")))
+ (+ (cdr (assoc-string "installed" paradox--package-count))
+    (cdr (assoc-string "dependency" paradox--package-count))
+    (cdr (assoc-string "unsigned" paradox--package-count))));
 
 (spaceline-define-segment all-the-icons-paradox-total
   "An `all-the-icons' segment to display the total number of packages found"
   (let ((text-face `(:foreground ,(spaceline-all-the-icons--face-foreground 'font-lock-keyword-face)
-                     :background ,(spaceline-all-the-icons--face-background 'powerline-active2))))
+                                 :background ,(spaceline-all-the-icons--face-background 'powerline-active2))))
     (propertize
      (concat
       (propertize "Total: " 'face text-face 'display '(raise 0.1))
@@ -1376,19 +1384,19 @@ BODY is the form to evaluate to get the text to display."
   "Return the current index in a `NeoTree' buffer."
   (unless (derived-mode-p 'neotree-mode) (error "Not in a NeoTree buffer"))
   (when (neo-buffer--get-filename-current-line)
-   (let* ((current (neo-buffer--get-filename-current-line))
-          (parent  (file-name-directory current))
+    (let* ((current (neo-buffer--get-filename-current-line))
+           (parent  (file-name-directory current))
 
-          (dirs  (car (neo-buffer--get-nodes parent)))
-          (files (cdr (neo-buffer--get-nodes parent)))
+           (dirs  (car (neo-buffer--get-nodes parent)))
+           (files (cdr (neo-buffer--get-nodes parent)))
 
-          (max   (+ (length dirs) (length files)))
-          (index (1+ (if (file-directory-p current)
-                         (neo-buffer--get-node-index current dirs)
-                       (+ (length dirs)
-                          (neo-buffer--get-node-index current files))))))
+           (max   (+ (length dirs) (length files)))
+           (index (1+ (if (file-directory-p current)
+                          (neo-buffer--get-node-index current dirs)
+                        (+ (length dirs)
+                           (neo-buffer--get-node-index current files))))))
 
-     (format "[%s/%s]" index max))))
+      (format "[%s/%s]" index max))))
 
 (spaceline-define-segment all-the-icons-neotree-index
   "An `all-the-icons' segment to display your current index within `NeoTree'."
@@ -1423,12 +1431,12 @@ BODY is the form to evaluate to get the number of things."
        :when (derived-mode-p 'neotree-mode))))
 
 (define-spaceline-all-the-icons--neotree-segment dirs
-  (all-the-icons-faicon "folder-o" :v-adjust -0.1)
-  (car (neo-buffer--get-nodes parent)))
+                                                 (all-the-icons-faicon "folder-o" :v-adjust -0.1)
+                                                 (car (neo-buffer--get-nodes parent)))
 
 (define-spaceline-all-the-icons--neotree-segment files
-  (all-the-icons-faicon "files-o" :v-adjust -0.1 :height 0.8)
-  (cdr (neo-buffer--get-nodes parent)))
+                                                 (all-the-icons-faicon "files-o" :v-adjust -0.1 :height 0.8)
+                                                 (cdr (neo-buffer--get-nodes parent)))
 
 (spaceline-define-segment all-the-icons-neotree-open-bracket
   "An `all-the-icons' segment to open bracket in neotree"
